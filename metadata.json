@@ -1,0 +1,6 @@
+{
+  "name": "Rangisha.com - Rwanda Lost & Found Platform",
+  "description": "Rangisha Icyatakaye. Subiza Icyabonetse. The trusted national lost and found platform for Rwanda to report, search, and recover lost belongings safely.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

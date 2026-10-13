@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
+@layer base {
+  :root {
+    --bg-main: #0F1720;
+    --bg-secondary: #141E2A;
+    --bg-card: #182432;
+    --bg-elevated: #1D2A38;
+    --border-color: #2A3948;
+    
+    --text-primary: #E6EDF3;
+    --text-secondary: #AAB7C4;
+    --text-muted: #7F8C99;
+    --text-heading: #F1F5F9;
+    
+    --primary: #16A085;
+    --primary-hover: #2CBFAE;
+    --primary-bright: #36C9B7;
+    
+    --success: #3BA982;
+    --warning: #C99A4A;
+    --danger: #C75C5C;
+  }
+
+  .dark, [data-theme="dark"] {
+    --bg-main: #0F1720;
+    --bg-secondary: #141E2A;
+    --bg-card: #182432;
+    --bg-elevated: #1D2A38;
+    --border-color: #2A3948;
+    
+    --text-primary: #E6EDF3;
+    --text-secondary: #AAB7C4;
+    --text-muted: #7F8C99;
+    --text-heading: #F1F5F9;
+    
+    --primary: #16A085;
+    --primary-hover: #2CBFAE;
+    --primary-bright: #36C9B7;
+    
+    --success: #3BA982;
+    --warning: #C99A4A;
+    --danger: #C75C5C;
+  }
+
+  .light, [data-theme="light"] {
+    --bg-main: #F4F7F8;
+    --bg-secondary: #EAF0F2;
+    --bg-card: #FFFFFF;
+    --bg-elevated: #EAF0F2;
+    --border-color: #D5DEE3;
+    
+    --text-primary: #1E2933;
+    --text-secondary: #607080;
+    --text-muted: #8A99A8;
+    --text-heading: #0F1720;
+    
+    --primary: #168F7D;
+    --primary-hover: #16A085;
+    --primary-secondary: #2CBFAE;
+    
+    --success: #3BA982;
+    --warning: #C99A4A;
+    --danger: #C75C5C;
+  }
+
+  html, body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+  }
+
+  #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  html.dark, html[data-theme="dark"] {
+    color-scheme: dark;
+    background-color: #0F1720;
+    color: #E6EDF3;
+  }
+
+  html.light, html[data-theme="light"] {
+    color-scheme: light;
+    background-color: #F4F7F8;
+    color: #1E2933;
+  }
+
+  /* Custom subtle eye-friendly scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0F1720;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2A3948;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #16A085;
+  }
+}

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="rw" class="dark scroll-smooth" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rangisha.com — Rangisha Icyatakaye. Subiza Icyabonetse. | Rwanda Lost & Found</title>
+    <meta name="description" content="Rangisha.com helps people in Rwanda report, search, and recover lost belongings safely — IDs, phones, laptops, documents, wallets, and keys with trusted verification." />
+    
+    <!-- Theme Early Initialization (Prevents Light Mode Flash) -->
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('rangisha_theme') || localStorage.getItem('ranga_theme');
+          if (saved === 'light') {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          } else {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+            if (!saved) localStorage.setItem('rangisha_theme', 'dark');
+          }
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
+
+    <!-- OpenGraph Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Rangisha.com — Rangisha Icyatakaye. Subiza Icyabonetse." />
+    <meta property="og:description" content="The official national lost and found platform for Rwanda to report, search, and recover lost belongings safely." />
+    <meta property="og:site_name" content="Rangisha.com" />
+    <meta property="og:locale" content="rw_RW" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Rangisha.com — Rwanda Lost & Found" />
+    <meta name="twitter:description" content="Find What Was Lost. Return What Was Found. Safe & verified lost item recovery across Rwanda." />
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.3-4.3'/><path d='M11 8v6'/><path d='M8 11h6'/></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Rangisha.com",
+      "applicationCategory": "CommunityApplication",
+      "operatingSystem": "All",
+      "description": "Rwanda's trusted lost and found recovery network with verification and finder reward management.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "RWF"
+      }
+    }
+    </script>
+  </head>
+  <body class="bg-[#F4F7F8] dark:bg-[#0F1720] text-[#1E2933] dark:text-[#E6EDF3] min-h-screen selection:bg-[#16A085] selection:text-[#F1F5F9] antialiased font-sans">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

@@ -18,30 +18,6 @@ import {
   ServiceSettings
 } from '../src/types/index';
 import { INITIAL_CATEGORIES } from '../src/lib/categories';
-import { 
-  getServiceSettingsFromDb, 
-  saveServiceSettingsToDb, 
-  getSiteSettingsFromDb, 
-  saveSiteSettingsToDb,
-  testMongoConnection,
-  getItemsFromDb,
-  saveItemToDb,
-  saveAllItemsToDb,
-  deleteItemFromDb,
-  getCasesFromDb,
-  saveCaseToDb,
-  saveAllCasesToDb,
-  getRecoveryRequestsFromDb,
-  saveRecoveryRequestToDb,
-  saveAllRecoveryRequestsToDb,
-  getUsersFromDb,
-  saveUserToDb,
-  saveAllUsersToDb,
-  getTransactionsFromDb,
-  saveTransactionToDb,
-  saveAllTransactionsToDb,
-  getMongoCollectionsSummary
-} from './mongodb';
 
 export interface DatabaseState {
   users: User[];
@@ -81,21 +57,21 @@ const DEFAULT_SETTINGS: SystemSettings = {
   contact: {
     phone: '0794473504',
     whatsapp: '0736138312',
-    email: 'ishimwefabrice856@gmail.com',
-    officeAddress: 'KN 3 Rd, CHIC Complex, 3rd Floor, Kigali, Rwanda',
+    email: 'contact@rangisha.rw',
+    officeAddress: 'KN 3 Rd, CHIC Complex, 2nd Floor, Kigali, Rwanda',
     officeHours: 'Kuwa Mbere - Kuwa Gatandatu: 8:00 AM - 6:00 PM CAT',
-    instagram: 'https://instagram.com/dollar.rw',
-    facebook: 'https://www.facebook.com/search/top?q=Heis%20Fabrice',
-    twitter: 'https://x.com/heisfabrice1.2'
+    instagram: 'https://instagram.com/rangisha_rw',
+    facebook: 'https://facebook.com/rangisharw',
+    twitter: 'https://x.com/rangisharw'
   },
   service: {
     serviceName: 'Office Service',
-    available: false,
-    status: 'coming_soon',
-    message: 'This service is currently unavailable and will be available in the coming days.',
-    messageRw: 'Iyi serivisi yo kwakira ibyangombwa mu biro ntabwo iratangira, izatangira mu minsi iri imbere. Mukomeze mutwandikire kuri WhatsApp cyangwa Hotline.',
-    expectedAvailability: 'Coming days',
-    expectedAvailabilityRw: 'Mu minsi ya vuba',
+    available: true,
+    status: 'available',
+    message: 'Our physical service center is open for collection and drop-offs.',
+    messageRw: 'Ibiro bya Rangisha.com bifunguye kwakira no gutanga ibyatakaye.',
+    expectedAvailability: 'Monday to Saturday (8:00 AM - 6:00 PM)',
+    expectedAvailabilityRw: 'Kuwa Mbere kugeza Kuwa Gatandatu (8:00 AM - 6:00 PM)',
     updatedAt: new Date().toISOString()
   },
   requireAdminApprovalBeforePublish: true,
@@ -105,9 +81,9 @@ const DEFAULT_SETTINGS: SystemSettings = {
 const SEED_USERS: User[] = [
   {
     id: 'usr-admin-1',
-    name: 'Ranga Admin Operations',
+    name: 'Rangisha Admin Operations',
     email: 'admin@ranga.rw',
-    phone: '+250788450120',
+    phone: '+250780000001',
     role: 'super_admin',
     preferredLanguage: 'rw',
     isVerified: true,
@@ -116,9 +92,9 @@ const SEED_USERS: User[] = [
   },
   {
     id: 'usr-citizen-1',
-    name: 'Alice Uwase',
-    email: 'alice.uwase@gmail.com',
-    phone: '+250788556677',
+    name: 'Citizen Demo',
+    email: 'citizen.demo@example.com',
+    phone: '+250780000002',
     role: 'user',
     preferredLanguage: 'rw',
     isVerified: true,
@@ -127,9 +103,9 @@ const SEED_USERS: User[] = [
   },
   {
     id: 'usr-finder-1',
-    name: 'Jean de Dieu Mugisha',
-    email: 'mugisha.jean@yahoo.com',
-    phone: '+250783112233',
+    name: 'Finder Demo',
+    email: 'finder.demo@example.com',
+    phone: '+250780000003',
     role: 'user',
     preferredLanguage: 'rw',
     isVerified: true,
@@ -629,159 +605,8 @@ class RangaDatabase {
 
   constructor() {
     this.state = this.loadInitialState();
-    this.initMongoSync();
   }
 
-  private async initMongoSync() {
-    try {
-      const [
-        remoteService, 
-        remoteContact,
-        remoteItems,
-        remoteCases,
-        remoteRecovery,
-        remoteTransactions,
-        remoteUsers
-      ] = await Promise.all([
-        getServiceSettingsFromDb().catch(() => null),
-        getSiteSettingsFromDb().catch(() => null),
-        getItemsFromDb().catch(() => []),
-        getCasesFromDb().catch(() => []),
-        getRecoveryRequestsFromDb().catch(() => []),
-        getTransactionsFromDb().catch(() => []),
-        getUsersFromDb().catch(() => [])
-      ]);
-
-      let changed = false;
-
-      // 1. Service settings
-      if (remoteService) {
-        this.state.settings.service = remoteService;
-        changed = true;
-      }
-
-      // 2. Contact settings
-      if (remoteContact) {
-        this.state.settings.contact = {
-          ...this.state.settings.contact,
-          ...remoteContact
-        };
-        changed = true;
-      }
-
-      // 3. Products / Items (Ababuze & Ababonetse)
-      if (remoteItems && remoteItems.length > 0) {
-        // MongoDB has items: merge into local cache
-        const itemMap = new Map<string, PublishedItem>();
-        for (const item of remoteItems) itemMap.set(item.id, item);
-        for (const item of this.state.items) {
-          if (!itemMap.has(item.id)) itemMap.set(item.id, item);
-        }
-        this.state.items = Array.from(itemMap.values());
-        changed = true;
-        console.log(`[MongoDB Atlas Sync] Loaded ${remoteItems.length} items/products from MongoDB Atlas.`);
-      } else if (this.state.items.length > 0) {
-        // Atlas has no items yet: populate Atlas collection with current items!
-        console.log(`[MongoDB Atlas Sync] Migrating ${this.state.items.length} items to MongoDB Atlas...`);
-        saveAllItemsToDb(this.state.items).catch(err => {
-          console.warn('[MongoDB Atlas Sync] Could not migrate items to Atlas:', err?.message || err);
-        });
-      }
-
-      // 4. Cases
-      if (remoteCases && remoteCases.length > 0) {
-        const caseMap = new Map<string, ContactCase>();
-        for (const c of remoteCases) caseMap.set(c.id, c);
-        for (const c of this.state.cases) {
-          if (!caseMap.has(c.id)) caseMap.set(c.id, c);
-        }
-        this.state.cases = Array.from(caseMap.values());
-        changed = true;
-        console.log(`[MongoDB Atlas Sync] Loaded ${remoteCases.length} cases from MongoDB Atlas.`);
-      } else if (this.state.cases.length > 0) {
-        console.log(`[MongoDB Atlas Sync] Migrating ${this.state.cases.length} cases to MongoDB Atlas...`);
-        saveAllCasesToDb(this.state.cases).catch(err => {
-          console.warn('[MongoDB Atlas Sync] Could not migrate cases to Atlas:', err?.message || err);
-        });
-      }
-
-      // 5. Recovery Requests
-      if (remoteRecovery && remoteRecovery.length > 0) {
-        const recMap = new Map<string, RecoveryRequest>();
-        for (const r of remoteRecovery) recMap.set(r.id, r);
-        for (const r of (this.state.recoveryRequests || [])) {
-          if (!recMap.has(r.id)) recMap.set(r.id, r);
-        }
-        this.state.recoveryRequests = Array.from(recMap.values());
-        changed = true;
-      } else if (this.state.recoveryRequests && this.state.recoveryRequests.length > 0) {
-        saveAllRecoveryRequestsToDb(this.state.recoveryRequests).catch(() => {});
-      }
-
-      // 6. Users
-      if (remoteUsers && remoteUsers.length > 0) {
-        const userMap = new Map<string, User>();
-        for (const u of remoteUsers) userMap.set(u.id, u);
-        for (const u of this.state.users) {
-          if (!userMap.has(u.id)) userMap.set(u.id, u);
-        }
-        this.state.users = Array.from(userMap.values());
-        changed = true;
-      } else if (this.state.users.length > 0) {
-        saveAllUsersToDb(this.state.users).catch(() => {});
-      }
-
-      // 7. Transactions
-      if (remoteTransactions && remoteTransactions.length > 0) {
-        const txMap = new Map<string, Transaction>();
-        for (const t of remoteTransactions) txMap.set(t.id, t);
-        for (const t of (this.state.transactions || [])) {
-          if (!txMap.has(t.id)) txMap.set(t.id, t);
-        }
-        this.state.transactions = Array.from(txMap.values());
-        changed = true;
-      } else if (this.state.transactions && this.state.transactions.length > 0) {
-        saveAllTransactionsToDb(this.state.transactions).catch(() => {});
-      }
-
-      if (changed) {
-        this.save();
-        console.log('[MongoDB Atlas Sync] Database synchronized with Atlas records.');
-      }
-    } catch (err) {
-      console.warn('[MongoDB Atlas Sync] Could not pull initial settings (using persistent store):', err);
-    }
-  }
-
-  /**
-   * Explicitly syncs all items, cases, claims, users, transactions and settings to MongoDB Atlas
-   */
-  public async syncAllToMongo(): Promise<{ success: boolean; message: string; summary?: any }> {
-    try {
-      const results = await Promise.allSettled([
-        saveAllItemsToDb(this.state.items),
-        saveAllCasesToDb(this.state.cases),
-        saveAllRecoveryRequestsToDb(this.state.recoveryRequests || []),
-        saveAllUsersToDb(this.state.users || []),
-        saveAllTransactionsToDb(this.state.transactions || []),
-        saveSiteSettingsToDb(this.state.settings.contact),
-        saveServiceSettingsToDb(this.state.settings.service || {})
-      ]);
-
-      const summary = await getMongoCollectionsSummary();
-      return {
-        success: true,
-        message: 'All products, cases, and settings successfully synchronized to MongoDB Atlas.',
-        summary
-      };
-    } catch (err: any) {
-      console.error('[MongoDB Atlas Sync Error] syncAllToMongo:', err);
-      return {
-        success: false,
-        message: err?.message || 'Failed to sync to MongoDB Atlas'
-      };
-    }
-  }
 
   private loadInitialState(): DatabaseState {
     const initial: DatabaseState = {
@@ -952,12 +777,6 @@ class RangaDatabase {
     });
 
     this.save();
-
-    // Async sync to MongoDB Atlas
-    saveRecoveryRequestToDb(newReq).catch(err => {
-      console.warn('[MongoDB Atlas Sync] Could not save recovery request:', err?.message || err);
-    });
-
     return newReq;
   }
 
@@ -967,12 +786,6 @@ class RangaDatabase {
 
     Object.assign(req, updates, { updatedAt: new Date().toISOString() });
     this.save();
-
-    // Async sync to MongoDB Atlas
-    saveRecoveryRequestToDb(req).catch(err => {
-      console.warn('[MongoDB Atlas Sync] Could not update recovery request:', err?.message || err);
-    });
-
     return req;
   }
 
@@ -1007,12 +820,6 @@ class RangaDatabase {
     }
     this.state.transactions.unshift(txn);
     this.save();
-
-    // Async sync to MongoDB Atlas
-    saveTransactionToDb(txn).catch(err => {
-      console.warn('[MongoDB Atlas Sync] Could not save transaction:', err?.message || err);
-    });
-
     return txn;
   }
 
@@ -1079,11 +886,6 @@ class RangaDatabase {
     this.state.cases.unshift(newCase);
     this.save();
 
-    // Async sync to MongoDB Atlas
-    saveCaseToDb(newCase).catch(err => {
-      console.warn('[MongoDB Atlas Sync] Could not save case to Atlas:', err?.message || err);
-    });
-
     this.addAuditLog({
       actorId: 'usr-intake',
       actorName: newCase.personName,
@@ -1109,11 +911,6 @@ class RangaDatabase {
       updatedAt: new Date().toISOString()
     };
     this.save();
-
-    // Async sync to MongoDB Atlas
-    saveCaseToDb(this.state.cases[idx]).catch(err => {
-      console.warn('[MongoDB Atlas Sync] Could not update case in Atlas:', err?.message || err);
-    });
 
     if (updates.status && updates.status !== prevStatus) {
       this.addAuditLog({
@@ -1196,11 +993,6 @@ class RangaDatabase {
 
     this.state.items.unshift(newItem);
     this.save();
-
-    // Async sync to MongoDB Atlas
-    saveItemToDb(newItem).catch(err => {
-      console.warn('[MongoDB Atlas Sync] Could not save draft item to Atlas:', err?.message || err);
-    });
 
     this.addAuditLog({
       actorId: 'usr-admin-1',
@@ -1296,11 +1088,6 @@ class RangaDatabase {
     this.state.items.unshift(newItem);
     this.save();
 
-    // Async sync to MongoDB Atlas
-    saveItemToDb(newItem).catch(err => {
-      console.warn('[MongoDB Atlas Sync] Could not save product to Atlas:', err?.message || err);
-    });
-
     this.addAuditLog({
       actorId: 'usr-admin-1',
       actorName: 'Admin',
@@ -1336,11 +1123,6 @@ class RangaDatabase {
 
     this.save();
 
-    // Async sync to MongoDB Atlas
-    saveItemToDb(this.state.items[idx]).catch(err => {
-      console.warn('[MongoDB Atlas Sync] Could not publish item in Atlas:', err?.message || err);
-    });
-
     this.addAuditLog({
       actorId: 'usr-admin-1',
       actorName: 'Admin',
@@ -1366,11 +1148,6 @@ class RangaDatabase {
     this.state.items[idx].visibility = 'draft';
     this.state.items[idx].updatedAt = new Date().toISOString();
     this.save();
-
-    // Async sync to MongoDB Atlas
-    saveItemToDb(this.state.items[idx]).catch(err => {
-      console.warn('[MongoDB Atlas Sync] Could not unpublish item in Atlas:', err?.message || err);
-    });
 
     this.addAuditLog({
       actorId: 'usr-admin-1',
@@ -1417,11 +1194,6 @@ class RangaDatabase {
     };
     this.save();
 
-    // Async sync to MongoDB Atlas
-    saveItemToDb(this.state.items[idx]).catch(err => {
-      console.warn('[MongoDB Atlas Sync] Could not update item in Atlas:', err?.message || err);
-    });
-
     this.addAuditLog({
       actorId: 'usr-admin-1',
       actorName: 'Admin',
@@ -1442,11 +1214,6 @@ class RangaDatabase {
 
     this.state.items = this.state.items.filter(i => i.id !== id && i.reportId !== id);
     this.save();
-
-    // Async sync to MongoDB Atlas
-    deleteItemFromDb(id).catch(err => {
-      console.warn('[MongoDB Atlas Sync] Could not delete item from Atlas:', err?.message || err);
-    });
 
     this.addAuditLog({
       actorId: 'usr-admin-1',
@@ -1524,11 +1291,6 @@ class RangaDatabase {
 
     this.save();
 
-    // Async sync to MongoDB Atlas
-    saveItemToDb(newItem).catch(err => {
-      console.warn('[MongoDB Atlas Sync] Could not publish case item to Atlas:', err?.message || err);
-    });
-
     this.addAuditLog({
       actorId: 'usr-admin-1',
       actorName: 'Admin',
@@ -1562,12 +1324,6 @@ class RangaDatabase {
     };
     this.state.settings.service = updated;
     this.save();
-
-    // Asynchronously sync to MongoDB Atlas if reachable
-    saveServiceSettingsToDb(updated).catch(err => {
-      console.warn('[MongoDB Atlas Sync] Could not sync service settings:', err?.message || err);
-    });
-
     return updated;
   }
 
@@ -1590,19 +1346,6 @@ class RangaDatabase {
       } : this.state.settings.service
     };
     this.save();
-
-    // Asynchronously sync with MongoDB Atlas if reachable
-    if (updates.contact) {
-      saveSiteSettingsToDb(this.state.settings.contact).catch(err => {
-        console.warn('[MongoDB Atlas Sync] Could not sync contact settings:', err?.message || err);
-      });
-    }
-    if (updates.service) {
-      saveServiceSettingsToDb(this.state.settings.service!).catch(err => {
-        console.warn('[MongoDB Atlas Sync] Could not sync service settings:', err?.message || err);
-      });
-    }
-
     return this.state.settings;
   }
 

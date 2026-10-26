@@ -8,10 +8,22 @@ import {
   ReportListing, 
   Review, 
   User, 
-  ItemCategory,
-  RecoveryRequest,
-  ServiceSettings
+  RecoveryRequest, 
+  ServiceSettings 
 } from '../types';
+
+function getAdminHeaders(): HeadersInit {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+  if (typeof window !== 'undefined') {
+    const token = sessionStorage.getItem('rangisha_admin_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+  return headers;
+}
 
 export const api = {
   // Public search queries approved & published items
@@ -51,7 +63,7 @@ export const api = {
     return res.json();
   },
 
-  // Lost Item Report Form (Requirement #6)
+  // Lost Item Report Form
   async reportLostItem(data: any): Promise<{ success: boolean; reportId: string; caseNumber: string; message: string }> {
     const res = await fetch('/api/lost-items', {
       method: 'POST',
@@ -59,13 +71,13 @@ export const api = {
       body: JSON.stringify(data)
     });
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({ error: 'Failed to submit lost report' }));
       throw new Error(err.error || 'Failed to submit lost report');
     }
     return res.json();
   },
 
-  // Found Item Report Form (Requirement #7)
+  // Found Item Report Form
   async reportFoundItem(data: any): Promise<{ success: boolean; reportId: string; caseNumber: string; message: string }> {
     const res = await fetch('/api/found-items', {
       method: 'POST',
@@ -73,13 +85,13 @@ export const api = {
       body: JSON.stringify(data)
     });
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({ error: 'Failed to submit found report' }));
       throw new Error(err.error || 'Failed to submit found report');
     }
     return res.json();
   },
 
-  // "RANGISHA" / "Iyi ni iyanjye" Recovery Claim (Requirement #11)
+  // "RANGISHA" / "Iyi ni iyanjye" Recovery Claim
   async submitRecoveryRequest(data: Partial<RecoveryRequest>): Promise<{ success: boolean; requestId: string; message: string; recoveryRequest: RecoveryRequest }> {
     const res = await fetch('/api/recovery-requests', {
       method: 'POST',
@@ -87,7 +99,7 @@ export const api = {
       body: JSON.stringify(data)
     });
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({ error: 'Failed to submit recovery claim' }));
       throw new Error(err.error || 'Failed to submit recovery claim');
     }
     return res.json();
@@ -134,7 +146,7 @@ export const api = {
       body: JSON.stringify(caseData)
     });
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({ error: 'Failed to submit information' }));
       throw new Error(err.error || 'Failed to submit information');
     }
     return res.json();
@@ -160,9 +172,9 @@ export const api = {
           commissionType: 'percentage',
           commissionValue: 10,
           finderRewardType: 'percentage',
-          finderRewardValue: 10,
-          minimumReward: 1000,
-          maximumReward: 50000,
+          finderRewardValue: 90,
+          minimumReward: 2000,
+          maximumReward: 1000000,
           currency: 'RWF',
           taxInclusive: true
         },
@@ -173,20 +185,20 @@ export const api = {
           available: true,
           status: 'available',
           message: 'Our physical service center is open for collection and drop-offs.',
-          messageRw: 'Ibiro bya Rangisha bifunguye kwakira no gutanga ibyatakaye.',
+          messageRw: 'Ibiro bya Rangisha.com bifunguye kwakira no gutanga ibyatakaye.',
           expectedAvailability: 'Monday to Saturday (8:00 AM - 6:00 PM)',
-          expectedAvailabilityRw: 'Kuwa mbere kugeza kuwa gatandatu (8:00 AM - 6:00 PM)',
+          expectedAvailabilityRw: 'Kuwa Mbere kugeza Kuwa Gatandatu (8:00 AM - 6:00 PM)',
           updatedAt: new Date().toISOString()
         },
         contact: {
           phone: '0794473504',
           whatsapp: '0736138312',
-          email: 'support@rangisha.com',
-          officeAddress: 'Kigali, Rwanda (CHIC Building 2nd Floor, Office 42)',
-          officeHours: 'Mon - Sat: 8:00 AM - 6:00 PM',
-          instagram: 'rangisha_rw',
-          facebook: 'rangisharw',
-          twitter: 'rangisharw'
+          email: 'contact@rangisha.rw',
+          officeAddress: 'KN 3 Rd, CHIC Complex, 2nd Floor, Kigali, Rwanda',
+          officeHours: 'Mon - Sat: 8:00 AM - 6:00 PM CAT',
+          instagram: 'https://instagram.com/rangisha_rw',
+          facebook: 'https://facebook.com/rangisharw',
+          twitter: 'https://x.com/rangisharw'
         }
       };
     }
@@ -223,14 +235,29 @@ export const api = {
 
   // Auth
   async login(email: string, password?: string): Promise<{ user: User; token: string }> {
-    const res = await fetch('/api/auth/login', {
+    // When password is provided, use the dedicated admin login endpoint
+    const endpoint = password ? '/api/admin/login' : '/api/auth/login';
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({ error: 'Login failed' }));
       throw new Error(err.error || 'Login failed');
+    }
+    return res.json();
+  },
+
+  async adminLogin(email: string, password: string): Promise<{ user: User; token: string }> {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Admin login failed' }));
+      throw new Error(err.error || 'Admin login failed');
     }
     return res.json();
   },
@@ -241,10 +268,12 @@ export const api = {
   },
 
   // ==========================
-  // ADMIN API CALLS
+  // ADMIN API CALLS (With Bearer Token Auth)
   // ==========================
   async getAdminDashboard(): Promise<any> {
-    const res = await fetch('/api/admin/dashboard');
+    const res = await fetch('/api/admin/dashboard', {
+      headers: getAdminHeaders()
+    });
     if (!res.ok) throw new Error('Failed to load admin dashboard');
     return res.json();
   },
@@ -253,13 +282,17 @@ export const api = {
     const params = new URLSearchParams();
     if (status && status !== 'all') params.set('status', status);
     if (type && type !== 'all') params.set('type', type);
-    const res = await fetch(`/api/admin/cases?${params.toString()}`);
+    const res = await fetch(`/api/admin/cases?${params.toString()}`, {
+      headers: getAdminHeaders()
+    });
     if (!res.ok) throw new Error('Failed to load admin cases');
     return res.json();
   },
 
   async getAdminCaseById(id: string): Promise<ContactCase> {
-    const res = await fetch(`/api/admin/cases/${id}`);
+    const res = await fetch(`/api/admin/cases/${id}`, {
+      headers: getAdminHeaders()
+    });
     if (!res.ok) throw new Error('Failed to load case');
     return res.json();
   },
@@ -267,7 +300,7 @@ export const api = {
   async updateCaseAnalysis(id: string, data: any): Promise<{ success: boolean; case: ContactCase }> {
     const res = await fetch(`/api/admin/cases/${id}/analysis`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAdminHeaders(),
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('Failed to update case analysis');
@@ -277,7 +310,7 @@ export const api = {
   async publishCaseToWebsite(caseId: string, customItemData?: any): Promise<{ success: boolean; item: PublishedItem }> {
     const res = await fetch(`/api/admin/cases/${caseId}/publish`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAdminHeaders(),
       body: JSON.stringify({ customItemData })
     });
     if (!res.ok) throw new Error('Failed to publish case to website');
@@ -285,7 +318,9 @@ export const api = {
   },
 
   async getAdminItems(): Promise<PublishedItem[]> {
-    const res = await fetch('/api/admin/items');
+    const res = await fetch('/api/admin/items', {
+      headers: getAdminHeaders()
+    });
     if (!res.ok) throw new Error('Failed to load admin items');
     return res.json();
   },
@@ -307,7 +342,7 @@ export const api = {
   }): Promise<{ success: boolean; item: PublishedItem }> {
     const res = await fetch('/api/admin/items', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAdminHeaders(),
       body: JSON.stringify(data)
     });
     if (!res.ok) {
@@ -320,7 +355,7 @@ export const api = {
   async createDraftItem(data: Partial<PublishedItem>): Promise<PublishedItem> {
     const res = await fetch('/api/admin/items/draft', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAdminHeaders(),
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('Failed to create draft item');
@@ -329,7 +364,8 @@ export const api = {
 
   async publishItem(id: string): Promise<{ success: boolean; item: PublishedItem }> {
     const res = await fetch(`/api/admin/items/${id}/publish`, {
-      method: 'PATCH'
+      method: 'PATCH',
+      headers: getAdminHeaders()
     });
     if (!res.ok) throw new Error('Failed to publish item');
     return res.json();
@@ -337,7 +373,8 @@ export const api = {
 
   async unpublishItem(id: string): Promise<{ success: boolean; item: PublishedItem }> {
     const res = await fetch(`/api/admin/items/${id}/unpublish`, {
-      method: 'PATCH'
+      method: 'PATCH',
+      headers: getAdminHeaders()
     });
     if (!res.ok) throw new Error('Failed to unpublish item');
     return res.json();
@@ -346,7 +383,7 @@ export const api = {
   async updateAdminItem(id: string, updates: Partial<PublishedItem>): Promise<{ success: boolean; item: PublishedItem }> {
     const res = await fetch(`/api/admin/items/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAdminHeaders(),
       body: JSON.stringify(updates)
     });
     if (!res.ok) throw new Error('Failed to update item');
@@ -355,7 +392,8 @@ export const api = {
 
   async deleteAdminItem(id: string): Promise<{ success: boolean }> {
     const res = await fetch(`/api/admin/items/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAdminHeaders()
     });
     return res.json();
   },
@@ -363,7 +401,7 @@ export const api = {
   async updateSettings(settings: Partial<SystemSettings>): Promise<{ success: boolean; settings: SystemSettings }> {
     const res = await fetch('/api/admin/settings', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAdminHeaders(),
       body: JSON.stringify(settings)
     });
     return res.json();
@@ -378,7 +416,7 @@ export const api = {
   async updateAdminServiceSettings(data: Partial<ServiceSettings>): Promise<{ success: boolean; service: ServiceSettings }> {
     const res = await fetch('/api/admin/service-settings', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAdminHeaders(),
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('Failed to update service settings');
@@ -391,8 +429,10 @@ export const api = {
     message: string; 
     collections?: { name: string; count: number }[] 
   }> {
-    const res = await fetch('/api/admin/mongodb/status');
-    if (!res.ok) return { connected: false, message: 'Database fallback' };
+    const res = await fetch('/api/admin/mongodb/status', {
+      headers: getAdminHeaders()
+    });
+    if (!res.ok) return { connected: false, message: 'Database diagnostic query failed' };
     return res.json();
   },
 
@@ -406,26 +446,31 @@ export const api = {
     } 
   }> {
     const res = await fetch('/api/admin/mongodb/sync', {
-      method: 'POST'
+      method: 'POST',
+      headers: getAdminHeaders()
     });
-    if (!res.ok) throw new Error('Failed to trigger database sync');
+    if (!res.ok) throw new Error('Failed to trigger database test');
     return res.json();
   },
 
   async getAuditLogs(): Promise<AuditLog[]> {
-    const res = await fetch('/api/admin/audit-logs');
+    const res = await fetch('/api/admin/audit-logs', {
+      headers: getAdminHeaders()
+    });
     return res.json();
   },
 
   async getAdminReports(): Promise<ReportListing[]> {
-    const res = await fetch('/api/admin/reports');
+    const res = await fetch('/api/admin/reports', {
+      headers: getAdminHeaders()
+    });
     return res.json();
   },
 
   async updateReportStatus(id: string, status: string): Promise<any> {
     const res = await fetch(`/api/admin/reports/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAdminHeaders(),
       body: JSON.stringify({ status })
     });
     return res.json();
